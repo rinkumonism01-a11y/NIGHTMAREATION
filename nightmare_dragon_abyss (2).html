@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NIGHTMARE DRAGON ABYSS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Creepster&family=Inter:wght@400;600;800&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #030205;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        .font-creep {
+            font-family: 'Creepster', cursive;
+        }
+
+        .font-gothic {
+            font-family: 'Cinzel Decorative', serif;
+        }
+
+        @keyframes shadowPulse {
+            0%, 100% { box-shadow: 0 0 25px rgba(255, 0, 50, 0.4), inset 0 0 15px rgba(255, 0, 50, 0.3); }
+            50% { box-shadow: 0 0 45px rgba(255, 0, 50, 0.8), inset 0 0 30px rgba(255, 0, 50, 0.6); }
+        }
+
+        .glow-box {
+            animation: shadowPulse 3s infinite ease-in-out;
+        }
+
+        .vignette-damage {
+            pointer-events: none;
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 100px rgba(220, 20, 60, 0.7);
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+        }
+
+        /* Cooldown Radial Overlay style */
+        .cd-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            border-radius: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-weight: bold;
+            color: #ff4466;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="relative bg-black text-slate-100 flex flex-col justify-between select-none">
+
+    <!-- GAME CANVAS -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0 block cursor-crosshair"></canvas>
+    
+    <!-- DAMAGE VIGNETTE FX -->
+    <div id="damageVignette" class="vignette-damage z-10"></div>
+
+    <!-- MAIN HUD OVERLAY -->
+    <div id="hud" class="relative z-20 pointer-events-none p-3 md:p-5 flex flex-col justify-between h-full opacity-0 transition-opacity duration-500">
+        
+        <!-- TOP HUD: PLAYER STATUS, LEVEL & BOSS STATUS -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 w-full max-w-7xl mx-auto">
+            
+            <!-- PLAYER DRAGON STATUS & XP -->
+            <div class="w-full md:w-4/12 bg-black/75 backdrop-blur-md border border-emerald-900/60 p-3 rounded-xl shadow-2xl">
+                <div class="flex justify-between items-center mb-1">
+                    <div class="flex items-center gap-2">
+                        <span id="playerLvlBadge" class="bg-emerald-950 text-emerald-400 font-mono text-xs px-2 py-0.5 rounded border border-emerald-700 font-bold">LVL 1</span>
+                        <span class="font-gothic text-xs md:text-sm font-bold tracking-widest text-emerald-400 uppercase">Nightmare Drake</span>
+                    </div>
+                    <span id="playerHpText" class="text-xs font-mono text-emerald-300 font-bold">100 / 100</span>
+                </div>
+                <!-- Health Bar -->
+                <div class="w-full h-3 bg-slate-950 rounded-full border border-emerald-900/50 overflow-hidden relative p-0.5 mb-1.5">
+                    <div id="playerHpBar" class="h-full bg-gradient-to-r from-emerald-700 via-emerald-500 to-teal-400 rounded-full transition-all duration-150 w-full shadow-[0_0_10px_rgba(16,185,129,0.8)]"></div>
+                </div>
+                <!-- XP Bar -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-mono text-slate-400">XP</span>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden relative">
+                        <div id="playerXpBar" class="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-all duration-300 w-0"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEVEL & AUDIO TOGGLE -->
+            <div class="flex items-center justify-between w-full md:w-auto gap-3 pointer-events-auto">
+                <div class="bg-black/80 border border-red-800/60 px-4 py-1.5 rounded-xl text-center shadow-lg">
+                    <div class="text-[9px] text-red-400 font-mono tracking-widest uppercase">ABYSS DEPTH</div>
+                    <div id="levelDisplay" class="font-creep text-lg md:text-xl text-red-500 tracking-wider">LEVEL 1 / 10</div>
+                </div>
+
+                <button id="audioToggle" class="bg-slate-900/90 hover:bg-red-950 border border-slate-700 hover:border-red-600 text-slate-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-mono transition-all flex items-center gap-2 shadow-lg">
+                    <svg id="audioIcon" class="w-4 h-4 fill-current text-red-400" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                    <span id="audioText">SOUND: ON</span>
+                </button>
+            </div>
+
+            <!-- ENEMY BOSS STATUS -->
+            <div class="w-full md:w-4/12 bg-black/75 backdrop-blur-md border border-purple-900/60 p-3 rounded-xl shadow-2xl">
+                <div class="flex justify-between items-center mb-1">
+                    <div class="flex items-center gap-2">
+                        <span id="bossName" class="font-gothic text-xs md:text-sm font-bold tracking-widest text-purple-400 uppercase truncate">Cinder Wyrm</span>
+                        <span id="bossSubtitle" class="text-[10px] font-mono text-slate-400 hidden sm:inline">(Ash Serpent)</span>
+                    </div>
+                    <span id="bossHpText" class="text-xs font-mono text-purple-300 font-bold">250 / 250</span>
+                </div>
+                <!-- Health Bar Track -->
+                <div class="w-full h-3 bg-slate-950 rounded-full border border-purple-900/50 overflow-hidden relative p-0.5">
+                    <div id="bossHpBar" class="h-full bg-gradient-to-r from-purple-800 via-rose-600 to-red-500 rounded-full transition-all duration-150 w-full shadow-[0_0_10px_rgba(168,85,247,0.8)]"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM HUD: ACTIVE SKILLS (1, 2, 3, 4) + MOBILE FIRE BUTTON + CREDITS FOOTER -->
+        <div class="w-full max-w-5xl mx-auto flex flex-col items-center gap-2 pointer-events-auto mb-1">
+            
+            <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 w-full">
+                
+                <!-- SKILL 1: SHADOW DASH -->
+                <button id="btnSkill1" class="relative group bg-slate-950/90 hover:bg-slate-900 border border-cyan-800 hover:border-cyan-400 text-cyan-300 p-2 sm:p-2.5 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                    <div class="bg-cyan-950 text-cyan-400 font-mono text-xs px-1.5 py-0.5 rounded border border-cyan-700 font-bold">[1]</div>
+                    <div class="text-left">
+                        <div class="text-xs font-gothic font-bold text-cyan-200">SHADOW DASH</div>
+                        <div class="text-[9px] font-mono text-slate-400 hidden sm:block">Invulnerable Burst</div>
+                    </div>
+                    <div id="cd1" class="cd-overlay hidden">3.0s</div>
+                </button>
+
+                <!-- SKILL 2: NECROTIC NOVA -->
+                <button id="btnSkill2" class="relative group bg-slate-950/90 hover:bg-slate-900 border border-emerald-800 hover:border-emerald-400 text-emerald-300 p-2 sm:p-2.5 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                    <div class="bg-emerald-950 text-emerald-400 font-mono text-xs px-1.5 py-0.5 rounded border border-emerald-700 font-bold">[2]</div>
+                    <div class="text-left">
+                        <div class="text-xs font-gothic font-bold text-emerald-200">NECROTIC NOVA</div>
+                        <div class="text-[9px] font-mono text-slate-400 hidden sm:block">Clear Bullets & AoE</div>
+                    </div>
+                    <div id="cd2" class="cd-overlay hidden">5.0s</div>
+                </button>
+
+                <!-- SKILL 3: BONE AEGIS -->
+                <button id="btnSkill3" class="relative group bg-slate-950/90 hover:bg-slate-900 border border-purple-800 hover:border-purple-400 text-purple-300 p-2 sm:p-2.5 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                    <div class="bg-purple-950 text-purple-400 font-mono text-xs px-1.5 py-0.5 rounded border border-purple-700 font-bold">[3]</div>
+                    <div class="text-left">
+                        <div class="text-xs font-gothic font-bold text-purple-200">BONE AEGIS</div>
+                        <div class="text-[9px] font-mono text-slate-400 hidden sm:block">Shield & Reflect</div>
+                    </div>
+                    <div id="cd3" class="cd-overlay hidden">8.0s</div>
+                </button>
+
+                <!-- SKILL 4: SOUL BEAM -->
+                <button id="btnSkill4" class="relative group bg-slate-950/90 hover:bg-slate-900 border border-red-800 hover:border-red-400 text-red-300 p-2 sm:p-2.5 rounded-xl shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                    <div class="bg-red-950 text-red-400 font-mono text-xs px-1.5 py-0.5 rounded border border-red-700 font-bold">[4]</div>
+                    <div class="text-left">
+                        <div class="text-xs font-gothic font-bold text-red-200">SOUL BEAM</div>
+                        <div class="text-[9px] font-mono text-slate-400 hidden sm:block">Void Laser & Heal</div>
+                    </div>
+                    <div id="cd4" class="cd-overlay hidden">10.0s</div>
+                </button>
+
+                <!-- MOBILE FIRE BREATH BUTTON -->
+                <button id="mobileFireBtn" class="md:hidden bg-gradient-to-r from-red-950 to-rose-800 text-white font-gothic text-xs tracking-wider px-4 py-2.5 rounded-xl border border-red-600 shadow-[0_0_15px_rgba(239,68,68,0.5)] active:scale-95 transition-transform flex items-center gap-1.5">
+                    <svg class="w-4 h-4 fill-current text-yellow-400 animate-pulse" viewBox="0 0 24 24"><path d="M12 23c-4.97 0-9-4.03-9-9 0-4.97 4.03-9 9-9 1.13 0 2.22.21 3.23.6-1.56.91-2.63 2.58-2.63 4.5 0 2.84 2.28 5.14 5.1 5.14 1.34 0 2.56-.52 3.47-1.37.53 1.3.83 2.73.83 4.23 0 4.97-4.03 9-9 9z"/></svg>
+                    HOLD FIRE
+                </button>
+
+            </div>
+
+            <!-- FOOTER CREDITS DISPLAY -->
+            <div class="text-[10px] sm:text-xs font-mono tracking-widest text-slate-400 uppercase text-center mt-1 bg-black/60 px-4 py-1 rounded-full border border-red-900/30">
+                CREATED BY <span class="text-red-400 font-bold">ALEX ADAMSON</span> , <span class="text-red-400 font-bold">SABANA YASMIN</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LEVEL TRANSITION BANNER OVERLAY -->
+    <div id="transitionOverlay" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/85 backdrop-blur-lg pointer-events-none opacity-0 transition-opacity duration-700">
+        <div class="text-center px-4">
+            <p id="transSub" class="text-red-500 font-mono text-sm tracking-[0.3em] uppercase mb-2">ABYSSAL TRANSFORMATION</p>
+            <h2 id="transTitle" class="font-gothic text-3xl md:text-5xl text-slate-100 tracking-wider font-bold mb-4 drop-shadow-[0_0_20px_rgba(255,0,50,0.8)]">LEVEL 1</h2>
+            <div class="w-32 h-1 bg-gradient-to-r from-transparent via-red-600 to-transparent mx-auto mb-4"></div>
+            <p id="transDesc" class="text-slate-400 font-mono text-xs md:text-sm max-w-md mx-auto">Prepare your fire. The entity hungers for your soul.</p>
+        </div>
+    </div>
+
+    <!-- START SCREEN OVERLAY -->
+    <div id="startModal" class="absolute inset-0 z-40 flex items-center justify-center bg-gradient-to-b from-black via-slate-950 to-black p-4">
+        <div class="max-w-2xl w-full bg-slate-950/90 border border-red-950 p-6 md:p-8 rounded-2xl glow-box text-center relative overflow-hidden backdrop-blur-xl">
+            
+            <h1 class="font-creep text-5xl md:text-7xl text-red-600 tracking-widest drop-shadow-[0_0_25px_rgba(220,38,38,0.9)] mb-1">NIGHTMARE ABYSS</h1>
+            <p class="font-gothic text-xs md:text-sm text-slate-400 tracking-[0.25em] uppercase mb-4">Eldritch Dragon Survival Battler</p>
+            
+            <!-- CREDITS BANNER ON TITLE SCREEN -->
+            <div class="inline-block bg-red-950/60 border border-red-800/80 px-4 py-1.5 rounded-full text-xs font-mono text-red-300 font-bold tracking-wider mb-5">
+                CREATED BY ALEX ADAMSON , SABANA YASMIN
+            </div>
+
+            <p class="text-slate-300 text-xs md:text-sm leading-relaxed mb-5 font-mono border-y border-red-900/40 py-3">
+                Command a nightmare dragon. Move with your cursor or touch drag. <span class="text-yellow-400 font-bold">When firing, your dragon locks position in place</span> to unleash continuous fire. Use Active Skills <span class="text-cyan-400 font-bold">[1], [2], [3], [4]</span> to conquer 10 bosses!
+            </p>
+
+            <!-- CONTROLS & SKILLS GUIDE -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-left mb-6 text-xs font-mono bg-black/70 p-3 rounded-xl border border-red-900/30">
+                <div class="space-y-1">
+                    <div class="text-red-400 font-bold font-gothic">PRIMARY CONTROLS</div>
+                    <div class="text-slate-300">• Mouse / Touch: Move Dragon</div>
+                    <div class="text-slate-300">• Hold Right-Click / Space / Fire Btn: Breathe Fire <span class="text-yellow-400 font-bold">(Locks Position)</span></div>
+                </div>
+                <div class="space-y-1">
+                    <div class="text-cyan-400 font-bold font-gothic">ACTIVE SKILLS [1-4]</div>
+                    <div class="text-slate-300">• [1] Shadow Dash (Invulnerable)</div>
+                    <div class="text-slate-300">• [2] Necrotic Nova (Clear Bullets)</div>
+                    <div class="text-slate-300">• [3] Bone Aegis (Reflect Shield)</div>
+                    <div class="text-slate-300">• [4] Soul Beam (Death Laser + Heal)</div>
+                </div>
+            </div>
+
+            <button id="startBtn" class="w-full py-3.5 bg-gradient-to-r from-red-900 via-rose-700 to-red-900 hover:from-red-800 hover:to-rose-600 text-white font-gothic text-lg font-bold tracking-widest rounded-xl border border-red-500 shadow-[0_0_30px_rgba(220,38,38,0.7)] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer">
+                ENTER THE ABYSS
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER / VICTORY MODAL OVERLAY -->
+    <div id="endModal" class="absolute inset-0 z-40 flex items-center justify-center bg-black/90 backdrop-blur-xl p-4 hidden">
+        <div class="max-w-lg w-full bg-slate-950 border border-red-900 p-8 rounded-2xl text-center glow-box relative">
+            <h2 id="endTitle" class="font-creep text-5xl text-red-600 tracking-wider mb-2">SOUL CONSUMED</h2>
+            <p id="endSubtitle" class="font-gothic text-xs text-slate-400 tracking-widest uppercase mb-6">You fell to the Wyrm of the Void</p>
+            
+            <div id="endStats" class="bg-black/70 p-4 rounded-xl border border-red-900/40 mb-6 font-mono text-sm space-y-2 text-slate-300">
+                <div class="flex justify-between"><span>Depths Reached:</span> <span id="statLevel" class="text-red-400 font-bold">Level 1</span></div>
+                <div class="flex justify-between"><span>Dragon Level:</span> <span id="statPlayerLvl" class="text-emerald-400 font-bold">LVL 1</span></div>
+                <div class="flex justify-between"><span>Total Damage:</span> <span id="statDamage" class="text-cyan-400 font-bold">0 HP</span></div>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="retryBtn" class="flex-1 py-3.5 bg-red-900 hover:bg-red-800 text-white font-gothic text-sm tracking-widest rounded-xl border border-red-500 shadow-lg transition-all active:scale-95">
+                    RETRY LEVEL
+                </button>
+                <button id="restartBtn" class="flex-1 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-gothic text-sm tracking-widest rounded-xl border border-slate-700 shadow-lg transition-all active:scale-95">
+                    START OVER
+                </button>
+            </div>
+
+            <div class="mt-6 text-xs font-mono text-slate-400 uppercase tracking-widest">
+                CREATED BY ALEX ADAMSON , SABANA YASMIN
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME ENGINE CODE -->
+    <script>
+        /**
+         * NIGHTMARE DRAGON ABYSS
+         * Created by Alex Adamson & Sabana Yasmin
+         */
+
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        // DOM Elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const hud = document.getElementById('hud');
+        const playerHpBar = document.getElementById('playerHpBar');
+        const playerHpText = document.getElementById('playerHpText');
+        const playerXpBar = document.getElementById('playerXpBar');
+        const playerLvlBadge = document.getElementById('playerLvlBadge');
+        const bossHpBar = document.getElementById('bossHpBar');
+        const bossHpText = document.getElementById('bossHpText');
+        const bossName = document.getElementById('bossName');
+        const bossSubtitle = document.getElementById('bossSubtitle');
+        const levelDisplay = document.getElementById('levelDisplay');
+        const damageVignette = document.getElementById('damageVignette');
+
+        const startModal = document.getElementById('startModal');
+        const startBtn = document.getElementById('startBtn');
+        const endModal = document.getElementById('endModal');
+        const endTitle = document.getElementById('endTitle');
+        const endSubtitle = document.getElementById('endSubtitle');
+        const statLevel = document.getElementById('statLevel');
+        const statPlayerLvl = document.getElementById('statPlayerLvl');
+        const statDamage = document.getElementById('statDamage');
+        const retryBtn = document.getElementById('retryBtn');
+        const restartBtn = document.getElementById('restartBtn');
+
+        const transitionOverlay = document.getElementById('transitionOverlay');
+        const transTitle = document.getElementById('transTitle');
+        const transSub = document.getElementById('transSub');
+        const transDesc = document.getElementById('transDesc');
+
+        const audioToggle = document.getElementById('audioToggle');
+        const audioText = document.getElementById('audioText');
+        const mobileFireBtn = document.getElementById('mobileFireBtn');
+
+        const btnSkill1 = document.getElementById('btnSkill1');
+        const btnSkill2 = document.getElementById('btnSkill2');
+        const btnSkill3 = document.getElementById('btnSkill3');
+        const btnSkill4 = document.getElementById('btnSkill4');
+        const cd1 = document.getElementById('cd1');
+        const cd2 = document.getElementById('cd2');
+        const cd3 = document.getElementById('cd3');
+        const cd4 = document.getElementById('cd4');
+
+        // Global Game State
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        let lastTime = performance.now();
+        let gameTime = 0;
+        let gameState = 'START';
+        let currentLevel = 1;
+        let cameraShake = 0;
+        let totalDamageDealt = 0;
+
+        // Player Leveling System
+        let playerLevel = 1;
+        let playerXp = 0;
+        let playerMaxXp = 100;
+
+        // Pointer Controls State
+        const pointer = {
+            x: width / 2,
+            y: height / 2,
+            isDown: false,
+            isFiring: false
+        };
+
+        // Skill Cooldowns (in frames, 60fps = 60 frames/sec)
+        const SKILL_COOLDOWNS = {
+            skill1: 180, // 3s
+            skill2: 300, // 5s
+            skill3: 480, // 8s
+            skill4: 600  // 10s
+        };
+        const skillTimers = { skill1: 0, skill2: 0, skill3: 0, skill4: 0 };
+
+        // WEB AUDIO SYNTHESIZER
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            } catch(e) {}
+        }
+
+        function playSound(type) {
+            if (!audioCtx || !soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+
+            try {
+                if (type === 'fire') {
+                    const bufferSize = audioCtx.sampleRate * 0.15;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const output = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+                    const noise = audioCtx.createBufferSource();
+                    noise.buffer = buffer;
+                    const filter = audioCtx.createBiquadFilter();
+                    filter.type = 'bandpass';
+                    filter.frequency.setValueAtTime(500, now);
+                    filter.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+                    const gain = audioCtx.createGain();
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    noise.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    noise.start(now);
+                } else if (type === 'dash') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.15);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'nova') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, now);
+                    osc.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'shield') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.linearRampToValueAtTime(600, now + 0.25);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'beam') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.linearRampToValueAtTime(350, now + 0.4);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'hit') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'roar') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(80, now);
+                    osc.frequency.linearRampToValueAtTime(130, now + 0.3);
+                    osc.frequency.linearRampToValueAtTime(45, now + 0.7);
+                    gain.gain.setValueAtTime(0.01, now);
+                    gain.gain.linearRampToValueAtTime(0.25, now + 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                } else if (type === 'lvlUp') {
+                    const notes = [261, 329, 392, 523];
+                    notes.forEach((freq, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.2);
+                    });
+                }
+            } catch(e) {}
+        }
+
+        audioToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            audioText.textContent = soundEnabled ? 'SOUND: ON' : 'SOUND: OFF';
+            if (audioCtx) {
+                if (soundEnabled) audioCtx.resume();
+                else audioCtx.suspend();
+            }
+        });
+
+
+        // 10 BOSS CONFIGURATIONS
+        const BOSS_DEFINITIONS = [
+            { level: 1, name: "CINDER WYRM", title: "Ash Serpent of the Abyss", hp: 250, speed: 3.5, color: "#ff4400", eyeColor: "#ffcc00", scaleColor: "#1a0d0a", spineColor: "#ff3300", headCount: 1, eyeCount: 3, segmentCount: 22, segmentSize: 16, attackCooldown: 90, attackPattern: 'singleFireball' },
+            { level: 2, name: "BILE-SPITTER DRAKE", title: "Acidic Toxic Horror", hp: 450, speed: 3.8, color: "#22ff44", eyeColor: "#ccff00", scaleColor: "#051a08", spineColor: "#00ff66", headCount: 1, eyeCount: 4, segmentCount: 24, segmentSize: 18, attackCooldown: 80, attackPattern: 'venomSpread' },
+            { level: 3, name: "CRYPT STALKER", title: "Skeletal Bone Horror", hp: 700, speed: 4.2, color: "#e6e6e6", eyeColor: "#00ffff", scaleColor: "#1f2421", spineColor: "#ffffff", headCount: 1, eyeCount: 6, segmentCount: 26, segmentSize: 19, attackCooldown: 70, attackPattern: 'boneShardBurst' },
+            { level: 4, name: "BLOOD-MOON BASILISK", title: "Crimson Multi-Eyed Fiend", hp: 1000, speed: 4.5, color: "#ff0044", eyeColor: "#ff0000", scaleColor: "#2b000a", spineColor: "#ff0055", headCount: 1, eyeCount: 8, segmentCount: 28, segmentSize: 20, attackCooldown: 60, attackPattern: 'bloodBeam' },
+            { level: 5, name: "ABYSSAL CHIMERA", title: "Twin-Headed Shadow Beast", hp: 1400, speed: 4.7, color: "#aa00ff", eyeColor: "#ff00aa", scaleColor: "#140026", spineColor: "#d400ff", headCount: 2, eyeCount: 6, segmentCount: 30, segmentSize: 22, attackCooldown: 55, attackPattern: 'dualStream' },
+            { level: 6, name: "VOID LEVIATHAN", title: "Colossal Purple-Black Horror", hp: 1900, speed: 4.0, color: "#6600ff", eyeColor: "#00ffff", scaleColor: "#09001a", spineColor: "#8800ff", headCount: 1, eyeCount: 8, segmentCount: 34, segmentSize: 24, attackCooldown: 50, attackPattern: 'voidHomingSkulls' },
+            { level: 7, name: "SOUL-FLAYER HYDRA", title: "Three-Headed Spectre God", hp: 2500, speed: 5.0, color: "#00f0ff", eyeColor: "#ffffff", scaleColor: "#001b24", spineColor: "#00e5ff", headCount: 3, eyeCount: 9, segmentCount: 32, segmentSize: 22, attackCooldown: 45, attackPattern: 'hydraBarrage' },
+            { level: 8, name: "HELLFIRE BEHEMOTH", title: "Molten Magma Titan", hp: 3300, speed: 4.3, color: "#ff8800", eyeColor: "#ffff00", scaleColor: "#2e0f00", spineColor: "#ff4400", headCount: 1, eyeCount: 5, segmentCount: 34, segmentSize: 26, attackCooldown: 40, attackPattern: 'radialNova' },
+            { level: 9, name: "THE PALE DREAD", title: "Seraphic Eldritch Nightmare", hp: 4200, speed: 5.5, color: "#ffffff", eyeColor: "#ff0000", scaleColor: "#1c1c1c", spineColor: "#ffd700", headCount: 1, eyeCount: 14, segmentCount: 35, segmentSize: 24, attackCooldown: 35, attackPattern: 'teleportLaser' },
+            { level: 10, name: "APOPHIS, WORLD-EATER", title: "Cosmic Abyssal Overlord", hp: 6000, speed: 5.2, color: "#ff0033", eyeColor: "#00ffff", scaleColor: "#0d0205", spineColor: "#ff0055", headCount: 4, eyeCount: 16, segmentCount: 40, segmentSize: 28, attackCooldown: 25, attackPattern: 'apocalypseHell' }
+        ];
+
+        // PARTICLES & FLOATING TEXT ENGINE
+        class Particle {
+            constructor(x, y, vx, vy, color, size, life, glow = false) {
+                this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+                this.color = color; this.size = size; this.life = life; this.maxLife = life;
+                this.glow = glow;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.vx *= 0.96; this.vy *= 0.96;
+                this.life--;
+            }
+            draw(ctx) {
+                const alpha = Math.max(0, this.life / this.maxLife);
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                if (this.glow) { ctx.shadowColor = this.color; ctx.shadowBlur = 12; }
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class DamageText {
+            constructor(x, y, text, color = '#ff3355') {
+                this.x = x + (Math.random() * 20 - 10);
+                this.y = y + (Math.random() * 10 - 5);
+                this.text = text; this.color = color;
+                this.life = 40; this.maxLife = 40;
+                this.vy = -1.5;
+            }
+            update() { this.y += this.vy; this.life--; }
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.life / this.maxLife;
+                ctx.font = '900 15px "Inter", sans-serif';
+                ctx.shadowColor = '#000000'; ctx.shadowBlur = 5;
+                ctx.fillStyle = this.color;
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        class Projectile {
+            constructor(x, y, vx, vy, radius, color, isPlayer, damage = 10, homing = false, target = null) {
+                this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+                this.radius = radius; this.color = color; this.isPlayer = isPlayer;
+                this.damage = damage; this.homing = homing; this.target = target;
+                this.life = 240;
+            }
+            update() {
+                if (this.homing && this.target) {
+                    const dx = this.target.x - this.x;
+                    const dy = this.target.y - this.y;
+                    const angle = Math.atan2(dy, dx);
+                    this.vx += Math.cos(angle) * 0.25;
+                    this.vy += Math.sin(angle) * 0.25;
+                    const speed = Math.hypot(this.vx, this.vy);
+                    if (speed > 6.5) { this.vx = (this.vx / speed) * 6.5; this.vy = (this.vy / speed) * 6.5; }
+                }
+                this.x += this.vx; this.y += this.vy;
+                this.life--;
+                if (Math.random() < 0.5) {
+                    particles.push(new Particle(this.x, this.y, -this.vx * 0.2, -this.vy * 0.2, this.color, this.radius * 0.5, 15, true));
+                }
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.shadowColor = this.color; ctx.shadowBlur = 12;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        let particles = [];
+        let damageTexts = [];
+        let projectiles = [];
+
+        // NIGHTMARE DRAGON CLASS (PROCEDURAL IK ANIMATION)
+        class NightmareDragon {
+            constructor(x, y, isPlayer = false, bossConfig = null) {
+                this.isPlayer = isPlayer;
+                this.config = bossConfig;
+
+                this.maxHp = isPlayer ? (100 + (playerLevel - 1) * 20) : bossConfig.hp;
+                this.hp = this.maxHp;
+                this.speed = isPlayer ? 7.5 : bossConfig.speed;
+
+                this.primaryColor = isPlayer ? "#00ffcc" : bossConfig.color;
+                this.eyeColor = isPlayer ? "#ff0055" : bossConfig.eyeColor;
+                this.scaleColor = isPlayer ? "#081412" : bossConfig.scaleColor;
+                this.spineColor = isPlayer ? "#00ffaa" : bossConfig.spineColor;
+
+                this.segmentCount = isPlayer ? 24 : bossConfig.segmentCount;
+                this.baseSegmentRadius = isPlayer ? 9 : bossConfig.segmentSize; // Compact hitboxes!
+                this.headCount = isPlayer ? 1 : bossConfig.headCount;
+                this.eyeCount = isPlayer ? 5 : bossConfig.eyeCount;
+
+                this.segments = [];
+                for (let i = 0; i < this.segmentCount; i++) {
+                    this.segments.push({
+                        x: x - i * 8, y: y, angle: 0,
+                        radius: Math.max(3, this.baseSegmentRadius * (1 - (i / this.segmentCount) * 0.6))
+                    });
+                }
+
+                this.targetX = x;
+                this.targetY = y;
+                this.fireCooldown = 0;
+                this.attackTimer = 0;
+                this.wingFlapAngle = 0;
+                this.jawOpen = 0;
+                this.hitFlash = 0;
+
+                // Active Skill Timers / States
+                this.iFrames = 0; // Invulnerability frames (Skill 1 Dash)
+                this.shieldTimer = 0; // Bone Aegis (Skill 3)
+                this.beamTimer = 0; // Soul Beam (Skill 4)
+                this.teleportTimer = 0;
+            }
+
+            get x() { return this.segments[0].x; }
+            get y() { return this.segments[0].y; }
+
+            update(targetX, targetY, enemyObj) {
+                this.targetX = targetX;
+                this.targetY = targetY;
+
+                if (this.hitFlash > 0) this.hitFlash--;
+                if (this.iFrames > 0) this.iFrames--;
+                if (this.shieldTimer > 0) this.shieldTimer--;
+                if (this.beamTimer > 0) this.beamTimer--;
+
+                const head = this.segments[0];
+
+                // -------------------------------------------------------------
+                // CRITICAL MECHANIC: FIRING LOCK MOVEMENT vs NORMAL CURSOR FOLLOW
+                // -------------------------------------------------------------
+                const isFiringNow = this.isPlayer && (pointer.isFiring || this.beamTimer > 0);
+
+                if (isFiringNow) {
+                    // WHEN FIRING: DRAGON STOPS MOVING ENTIRELY!
+                    // Head stays anchored at its current position, but rotates to face pointer aim!
+                    const dxAim = pointer.x - head.x;
+                    const dyAim = pointer.y - head.y;
+                    head.angle = Math.atan2(dyAim, dxAim);
+                } else {
+                    // WHEN NOT FIRING: MOVES SMOOTHLY TOWARD CURSOR / TARGET
+                    const dx = this.targetX - head.x;
+                    const dy = this.targetY - head.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist > 4) {
+                        const angle = Math.atan2(dy, dx);
+                        const moveSpeed = Math.min(dist * 0.1, this.speed);
+                        head.x += Math.cos(angle) * moveSpeed;
+                        head.y += Math.sin(angle) * moveSpeed;
+                        head.angle = angle;
+                    }
+                }
+
+                // Inverse Kinematics Dragging for Body Segments
+                for (let i = 1; i < this.segments.length; i++) {
+                    const prev = this.segments[i - 1];
+                    const curr = this.segments[i];
+                    const segDx = prev.x - curr.x;
+                    const segDy = prev.y - curr.y;
+                    const segAngle = Math.atan2(segDy, segDx);
+                    curr.angle = segAngle;
+                    const targetSegDist = (prev.radius + curr.radius) * 0.75;
+                    curr.x = prev.x - Math.cos(segAngle) * targetSegDist;
+                    curr.y = prev.y - Math.sin(segAngle) * targetSegDist;
+                }
+
+                this.wingFlapAngle += 0.08;
+                if (this.jawOpen > 0) this.jawOpen -= 0.05;
+                if (this.fireCooldown > 0) this.fireCooldown--;
+
+                // Player Fire Stream
+                if (this.isPlayer) {
+                    if (pointer.isFiring && this.fireCooldown <= 0) {
+                        this.breatheFire();
+                        this.fireCooldown = Math.max(4, 7 - Math.floor(playerLevel / 2));
+                    }
+                    if (this.beamTimer > 0 && gameTime % 3 === 0) {
+                        this.channelSoulBeam(enemyObj);
+                    }
+                } else {
+                    this.updateBossAI(enemyObj);
+                }
+            }
+
+            breatheFire() {
+                const head = this.segments[0];
+                this.jawOpen = 1.0;
+                playSound('fire');
+
+                const fireAngle = head.angle + (Math.random() * 0.25 - 0.125);
+                const speed = 11 + Math.random() * 3;
+                const damage = 12 + playerLevel * 2;
+
+                projectiles.push(new Projectile(
+                    head.x + Math.cos(head.angle) * 15,
+                    head.y + Math.sin(head.angle) * 15,
+                    Math.cos(fireAngle) * speed, Math.sin(fireAngle) * speed,
+                    7 + Math.random() * 3,
+                    this.primaryColor,
+                    true,
+                    damage
+                ));
+            }
+
+            channelSoulBeam(enemyObj) {
+                const head = this.segments[0];
+                this.jawOpen = 1.0;
+                playSound('beam');
+
+                const beamAngle = head.angle;
+                const beamLength = 800;
+                const endX = head.x + Math.cos(beamAngle) * beamLength;
+                const endY = head.y + Math.sin(beamAngle) * beamLength;
+
+                // Visual Beam Particles
+                for (let i = 0; i < 6; i++) {
+                    const step = Math.random() * beamLength;
+                    particles.push(new Particle(
+                        head.x + Math.cos(beamAngle) * step,
+                        head.y + Math.sin(beamAngle) * step,
+                        (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4,
+                        '#ff0055', 5, 15, true
+                    ));
+                }
+
+                // Beam Hitbox against Boss
+                if (enemyObj) {
+                    for (let s of enemyObj.segments) {
+                        // Point to Line segment distance check
+                        const distToBeam = Math.abs((endY - head.y) * s.x - (endX - head.x) * s.y + endX * head.y - endY * head.x) / beamLength;
+                        if (distToBeam < s.radius + 18) {
+                            const beamDmg = 16 + playerLevel * 3;
+                            enemyObj.takeDamage(beamDmg);
+                            // Lifesteal heal player
+                            if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + beamDmg * 0.15);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            updateBossAI(playerObj) {
+                if (!playerObj) return;
+                this.attackTimer++;
+                const head = this.segments[0];
+
+                if (this.config.attackPattern === 'teleportLaser') {
+                    this.teleportTimer++;
+                    if (this.teleportTimer > 150) {
+                        this.teleportTimer = 0;
+                        head.x = playerObj.x + (Math.random() * 260 - 130);
+                        head.y = playerObj.y + (Math.random() * 260 - 130);
+                        playSound('roar');
+                        for (let k = 0; k < 20; k++) {
+                            particles.push(new Particle(head.x, head.y, (Math.random()-0.5)*8, (Math.random()-0.5)*8, '#ffffff', 5, 25, true));
+                        }
+                    }
+                }
+
+                if (this.attackTimer >= this.config.attackCooldown) {
+                    this.attackTimer = 0;
+                    this.jawOpen = 1.0;
+                    playSound('roar');
+                    const pattern = this.config.attackPattern;
+                    const angleToPlayer = Math.atan2(playerObj.y - head.y, playerObj.x - head.x);
+
+                    if (pattern === 'singleFireball') {
+                        projectiles.push(new Projectile(head.x, head.y, Math.cos(angleToPlayer) * 7, Math.sin(angleToPlayer) * 7, 9, this.primaryColor, false, 10));
+                    } else if (pattern === 'venomSpread') {
+                        for (let a = -0.3; a <= 0.3; a += 0.3) projectiles.push(new Projectile(head.x, head.y, Math.cos(angleToPlayer + a) * 7.5, Math.sin(angleToPlayer + a) * 7.5, 8, "#22ff44", false, 12));
+                    } else if (pattern === 'boneShardBurst') {
+                        for (let a = -0.4; a <= 0.4; a += 0.2) projectiles.push(new Projectile(head.x, head.y, Math.cos(angleToPlayer + a) * 8.5, Math.sin(angleToPlayer + a) * 8.5, 7, "#e6e6e6", false, 14));
+                    } else if (pattern === 'bloodBeam') {
+                        for (let i = 0; i < 5; i++) {
+                            setTimeout(() => {
+                                if (gameState !== 'PLAYING') return;
+                                const ang = Math.atan2(playerObj.y - head.y, playerObj.x - head.x);
+                                projectiles.push(new Projectile(head.x, head.y, Math.cos(ang) * 9.5, Math.sin(ang) * 9.5, 10, "#ff0044", false, 15));
+                            }, i * 60);
+                        }
+                    } else if (pattern === 'dualStream') {
+                        projectiles.push(new Projectile(head.x - 15, head.y, Math.cos(angleToPlayer - 0.15) * 8, Math.sin(angleToPlayer - 0.15) * 8, 9, "#aa00ff", false, 15));
+                        projectiles.push(new Projectile(head.x + 15, head.y, Math.cos(angleToPlayer + 0.15) * 8, Math.sin(angleToPlayer + 0.15) * 8, 9, "#ff00aa", false, 15));
+                    } else if (pattern === 'voidHomingSkulls') {
+                        for (let i = -1; i <= 1; i++) projectiles.push(new Projectile(head.x, head.y, Math.cos(angleToPlayer + i * 0.3) * 4.5, Math.sin(angleToPlayer + i * 0.3) * 4.5, 11, "#6600ff", false, 18, true, playerObj));
+                    } else if (pattern === 'hydraBarrage') {
+                        for (let i = -2; i <= 2; i++) projectiles.push(new Projectile(head.x, head.y, Math.cos(angleToPlayer + i * 0.2) * 8, Math.sin(angleToPlayer + i * 0.2) * 8, 8, "#00f0ff", false, 16));
+                    } else if (pattern === 'radialNova') {
+                        for (let i = 0; i < 14; i++) {
+                            const radAngle = (Math.PI * 2 / 14) * i;
+                            projectiles.push(new Projectile(head.x, head.y, Math.cos(radAngle) * 6, Math.sin(radAngle) * 6, 9, "#ff8800", false, 18));
+                        }
+                    } else if (pattern === 'teleportLaser') {
+                        for (let i = -3; i <= 3; i++) projectiles.push(new Projectile(head.x, head.y, Math.cos(angleToPlayer + i * 0.12) * 10, Math.sin(angleToPlayer + i * 0.12) * 10, 8, "#ffffff", false, 20));
+                    } else if (pattern === 'apocalypseHell') {
+                        for (let i = 0; i < 12; i++) {
+                            const rad = (Math.PI * 2 / 12) * i + gameTime * 0.05;
+                            projectiles.push(new Projectile(head.x, head.y, Math.cos(rad) * 6.5, Math.sin(rad) * 6.5, 10, "#ff0033", false, 22));
+                        }
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+
+                // Invulnerability Afterimages (Dash Skill 1)
+                if (this.iFrames > 0 && this.isPlayer) {
+                    ctx.shadowColor = '#00ffff';
+                    ctx.shadowBlur = 15;
+                    ctx.globalAlpha = 0.6;
+                }
+
+                // Hit Flash
+                if (this.hitFlash > 0) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowColor = '#ffffff';
+                    ctx.shadowBlur = 20;
+                }
+
+                // 1. TATTERED WINGS
+                if (this.segments.length > 3) {
+                    const wingSeg = this.segments[2];
+                    const wingSpan = this.baseSegmentRadius * 4.2;
+                    const flapOffset = Math.sin(this.wingFlapAngle) * 0.4;
+
+                    ctx.save();
+                    ctx.translate(wingSeg.x, wingSeg.y);
+                    ctx.rotate(wingSeg.angle);
+
+                    // Left & Right Wings
+                    [-1, 1].forEach(side => {
+                        ctx.save();
+                        ctx.scale(1, side * (1 + flapOffset));
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.quadraticCurveTo(-wingSpan * 0.4, -wingSpan * 0.9, -wingSpan, -wingSpan * 0.6);
+                        ctx.quadraticCurveTo(-wingSpan * 0.6, -wingSpan * 0.3, -wingSpan * 0.8, 0);
+                        ctx.fillStyle = this.scaleColor;
+                        ctx.strokeStyle = this.spineColor;
+                        ctx.lineWidth = 1.8;
+                        ctx.fill(); ctx.stroke();
+                        ctx.restore();
+                    });
+                    ctx.restore();
+                }
+
+                // 2. SEGMENTED SPINE & RIBS
+                for (let i = this.segments.length - 1; i >= 1; i--) {
+                    const seg = this.segments[i];
+                    ctx.save();
+                    ctx.translate(seg.x, seg.y);
+                    ctx.rotate(seg.angle);
+
+                    ctx.fillStyle = (this.hitFlash > 0) ? '#ffffff' : this.scaleColor;
+                    ctx.strokeStyle = this.spineColor;
+                    ctx.lineWidth = 1.5;
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, seg.radius, 0, Math.PI * 2);
+                    ctx.fill(); ctx.stroke();
+
+                    // Spine Spike
+                    ctx.beginPath();
+                    ctx.moveTo(0, -seg.radius);
+                    ctx.lineTo(-seg.radius * 0.8, -seg.radius * 1.8);
+                    ctx.lineTo(seg.radius * 0.4, -seg.radius * 0.8);
+                    ctx.fillStyle = this.spineColor;
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // 3. SKULL HEAD
+                for (let h = 0; h < this.headCount; h++) {
+                    const head = this.segments[0];
+                    const headOffsetAngle = (h - (this.headCount - 1) / 2) * 0.35;
+
+                    ctx.save();
+                    ctx.translate(head.x, head.y);
+                    ctx.rotate(head.angle + headOffsetAngle);
+
+                    ctx.shadowColor = this.primaryColor;
+                    ctx.shadowBlur = 15;
+
+                    // Skull Shape
+                    ctx.beginPath();
+                    ctx.moveTo(head.radius * 1.8, 0);
+                    ctx.lineTo(head.radius * 0.6, -head.radius * 1.2);
+                    ctx.lineTo(-head.radius * 1.1, -head.radius * 1.0);
+                    ctx.lineTo(-head.radius * 1.3, 0);
+                    ctx.lineTo(-head.radius * 1.1, head.radius * 1.0);
+                    ctx.lineTo(head.radius * 0.6, head.radius * 1.2);
+                    ctx.closePath();
+
+                    ctx.fillStyle = (this.hitFlash > 0) ? '#ffffff' : this.scaleColor;
+                    ctx.strokeStyle = this.primaryColor;
+                    ctx.lineWidth = 2;
+                    ctx.fill(); ctx.stroke();
+
+                    // Horns
+                    [-1, 1].forEach(side => {
+                        ctx.fillStyle = this.spineColor;
+                        ctx.beginPath();
+                        ctx.moveTo(-head.radius * 0.8, side * head.radius * 0.9);
+                        ctx.lineTo(-head.radius * 2.2, side * head.radius * 1.8);
+                        ctx.lineTo(-head.radius * 0.4, side * head.radius * 0.5);
+                        ctx.fill();
+                    });
+
+                    // Multi-Eyes
+                    for (let e = 0; e < this.eyeCount; e++) {
+                        const eyeX = head.radius * 0.2 - (e % 3) * 6;
+                        const eyeY = (e % 2 === 0 ? -1 : 1) * (head.radius * 0.4 + Math.floor(e / 2) * 4);
+                        const eyeRadius = Math.max(1.8, 4 - e * 0.4);
+
+                        ctx.shadowColor = this.eyeColor; ctx.shadowBlur = 10;
+                        ctx.fillStyle = this.eyeColor;
+                        ctx.beginPath();
+                        ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+
+                // DRAW BONE AEGIS SHIELD (SKILL 3)
+                if (this.shieldTimer > 0) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.strokeStyle = '#a855f7';
+                    ctx.shadowColor = '#d8b4fe';
+                    ctx.shadowBlur = 20;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 35, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // DRAW SOUL BEAM VISUAL (SKILL 4)
+                if (this.beamTimer > 0 && this.isPlayer) {
+                    const head = this.segments[0];
+                    ctx.save();
+                    ctx.strokeStyle = '#ff0055';
+                    ctx.shadowColor = '#ff0055';
+                    ctx.shadowBlur = 35;
+                    ctx.lineWidth = 14;
+                    ctx.beginPath();
+                    ctx.moveTo(head.x, head.y);
+                    ctx.lineTo(head.x + Math.cos(head.angle) * 800, head.y + Math.sin(head.angle) * 800);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                ctx.restore();
+            }
+
+            takeDamage(amount) {
+                if (this.iFrames > 0) return; // Invulnerable frame dodge!
+
+                // Bone Aegis Shield Block (Skill 3)
+                if (this.shieldTimer > 0) {
+                    playSound('shield');
+                    // Reflect bolt back at enemy dragon
+                    if (enemyDragon) {
+                        projectiles.push(new Projectile(this.x, this.y, (Math.random()-0.5)*8, (Math.random()-0.5)*8, 8, "#d8b4fe", true, 25, true, enemyDragon));
+                    }
+                    damageTexts.push(new DamageText(this.x, this.y, 'BLOCKED!', '#a855f7'));
+                    return;
+                }
+
+                this.hp -= amount;
+                this.hitFlash = 4;
+                playSound('hit');
+
+                if (this.isPlayer) {
+                    cameraShake = 8;
+                    damageVignette.style.opacity = '1';
+                    setTimeout(() => { damageVignette.style.opacity = '0'; }, 180);
+                } else {
+                    totalDamageDealt += amount;
+                }
+
+                damageTexts.push(new DamageText(this.x, this.y, `-${Math.round(amount)}`, this.isPlayer ? '#ff2244' : '#00ffcc'));
+            }
+        }
+
+        let playerDragon = null;
+        let enemyDragon = null;
+
+        // BACKGROUND ASH ENGINE
+        const backgroundAshes = [];
+        for (let i = 0; i < 70; i++) {
+            backgroundAshes.push({
+                x: Math.random() * width, y: Math.random() * height,
+                size: Math.random() * 2 + 0.5, vy: -Math.random() * 1.2 - 0.4, vx: Math.random() * 0.8 - 0.4,
+                alpha: Math.random() * 0.6 + 0.2
+            });
+        }
+
+
+        // ACTIVE SKILL HANDLERS (KEYS 1, 2, 3, 4 & TOUCH BUTTONS)
+        function triggerSkill(skillIndex) {
+            if (gameState !== 'PLAYING' || !playerDragon) return;
+
+            if (skillIndex === 1 && skillTimers.skill1 <= 0) {
+                // SKILL 1: SHADOW DASH
+                skillTimers.skill1 = SKILL_COOLDOWNS.skill1;
+                playerDragon.iFrames = 25; // Invulnerable for 25 frames
+                const dashAngle = Math.atan2(pointer.y - playerDragon.y, pointer.x - playerDragon.x);
+                const head = playerDragon.segments[0];
+                head.x += Math.cos(dashAngle) * 160;
+                head.y += Math.sin(dashAngle) * 160;
+                playSound('dash');
+                for (let k = 0; k < 20; k++) particles.push(new Particle(head.x, head.y, (Math.random()-0.5)*10, (Math.random()-0.5)*10, '#00ffff', 6, 25, true));
+
+            } else if (skillIndex === 2 && skillTimers.skill2 <= 0) {
+                // SKILL 2: NECROTIC NOVA
+                skillTimers.skill2 = SKILL_COOLDOWNS.skill2;
+                playSound('nova');
+                cameraShake = 14;
+
+                // Erase incoming enemy projectiles near player
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    if (!projectiles[i].isPlayer && Math.hypot(projectiles[i].x - playerDragon.x, projectiles[i].y - playerDragon.y) < 250) {
+                        projectiles.splice(i, 1);
+                    }
+                }
+                // AoE Burst damage to boss
+                if (enemyDragon && Math.hypot(enemyDragon.x - playerDragon.x, enemyDragon.y - playerDragon.y) < 280) {
+                    enemyDragon.takeDamage(75 + playerLevel * 15);
+                }
+                for (let k = 0; k < 35; k++) {
+                    const ang = Math.random() * Math.PI * 2;
+                    particles.push(new Particle(playerDragon.x, playerDragon.y, Math.cos(ang) * 9, Math.sin(ang) * 9, '#10b981', 7, 30, true));
+                }
+
+            } else if (skillIndex === 3 && skillTimers.skill3 <= 0) {
+                // SKILL 3: BONE AEGIS
+                skillTimers.skill3 = SKILL_COOLDOWNS.skill3;
+                playerDragon.shieldTimer = 240; // 4 seconds shield
+                playSound('shield');
+
+            } else if (skillIndex === 4 && skillTimers.skill4 <= 0) {
+                // SKILL 4: SOUL BEAM
+                skillTimers.skill4 = SKILL_COOLDOWNS.skill4;
+                playerDragon.beamTimer = 100; // Channel 1.6 seconds beam
+            }
+        }
+
+        // KEYBOARD EVENT LISTENERS FOR SKILLS 1, 2, 3, 4
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '1' || e.code === 'Digit1') triggerSkill(1);
+            if (e.key === '2' || e.code === 'Digit2') triggerSkill(2);
+            if (e.key === '3' || e.code === 'Digit3') triggerSkill(3);
+            if (e.key === '4' || e.code === 'Digit4') triggerSkill(4);
+            if (e.code === 'Space') pointer.isFiring = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') pointer.isFiring = false;
+        });
+
+        // ON-SCREEN SKILL BUTTON CLICK LISTENERS
+        btnSkill1.addEventListener('click', () => triggerSkill(1));
+        btnSkill2.addEventListener('click', () => triggerSkill(2));
+        btnSkill3.addEventListener('click', () => triggerSkill(3));
+        btnSkill4.addEventListener('click', () => triggerSkill(4));
+
+        function updateSkillCooldowns() {
+            for (let i = 1; i <= 4; i++) {
+                const key = `skill${i}`;
+                const cdElem = document.getElementById(`cd${i}`);
+                if (skillTimers[key] > 0) {
+                    skillTimers[key]--;
+                    cdElem.classList.remove('hidden');
+                    cdElem.textContent = `${(skillTimers[key] / 60).toFixed(1)}s`;
+                } else {
+                    cdElem.classList.add('hidden');
+                }
+            }
+        }
+
+        function addXp(amount) {
+            playerXp += amount;
+            if (playerXp >= playerMaxXp) {
+                playerXp -= playerMaxXp;
+                playerLevel++;
+                playerMaxXp = Math.floor(playerMaxXp * 1.4);
+                if (playerDragon) {
+                    playerDragon.maxHp += 20;
+                    playerDragon.hp = playerDragon.maxHp;
+                }
+                playSound('lvlUp');
+                damageTexts.push(new DamageText(playerDragon.x, playerDragon.y - 20, 'LEVEL UP!', '#38bdf8'));
+            }
+            playerLvlBadge.textContent = `LVL ${playerLevel}`;
+            playerXpBar.style.width = `${Math.min(100, (playerXp / playerMaxXp) * 100)}%`;
+        }
+
+
+        // LEVEL MANAGEMENT & START
+        function startLevel(levelNum) {
+            currentLevel = levelNum;
+            const bossDef = BOSS_DEFINITIONS[levelNum - 1];
+
+            playerDragon = new NightmareDragon(width * 0.2, height * 0.5, true);
+            enemyDragon = new NightmareDragon(width * 0.8, height * 0.5, false, bossDef);
+
+            projectiles = []; particles = []; damageTexts = [];
+
+            levelDisplay.textContent = `LEVEL ${levelNum} / 10`;
+            bossName.textContent = bossDef.name;
+            bossSubtitle.textContent = `(${bossDef.title})`;
+            updateHUD();
+
+            gameState = 'TRANSITION';
+            transTitle.textContent = `LEVEL ${levelNum}: ${bossDef.name}`;
+            transDesc.textContent = bossDef.title;
+            transitionOverlay.style.opacity = '1';
+
+            playSound('roar');
+
+            setTimeout(() => {
+                transitionOverlay.style.opacity = '0';
+                gameState = 'PLAYING';
+            }, 2000);
+        }
+
+        function updateHUD() {
+            if (!playerDragon || !enemyDragon) return;
+            playerHpBar.style.width = `${Math.max(0, (playerDragon.hp / playerDragon.maxHp) * 100)}%`;
+            playerHpText.textContent = `${Math.ceil(playerDragon.hp)} / ${playerDragon.maxHp}`;
+            bossHpBar.style.width = `${Math.max(0, (enemyDragon.hp / enemyDragon.maxHp) * 100)}%`;
+            bossHpText.textContent = `${Math.ceil(enemyDragon.hp)} / ${enemyDragon.maxHp}`;
+        }
+
+        function gameOver(victory = false) {
+            gameState = victory ? 'VICTORY' : 'GAMEOVER';
+            endModal.classList.remove('hidden');
+
+            if (victory) {
+                endTitle.textContent = "ABYSS VANQUISHED";
+                endTitle.className = "font-creep text-5xl text-emerald-500 tracking-wider mb-2 drop-shadow-[0_0_25px_rgba(16,185,129,0.9)]";
+                endSubtitle.textContent = "YOU REIGN AS THE ULTIMATE COSMIC DRAGON GOD";
+            } else {
+                endTitle.textContent = "SOUL CONSUMED";
+                endTitle.className = "font-creep text-5xl text-red-600 tracking-wider mb-2 drop-shadow-[0_0_25px_rgba(220,38,38,0.9)]";
+                endSubtitle.textContent = `Fell to Level ${currentLevel}: ${BOSS_DEFINITIONS[currentLevel-1].name}`;
+            }
+
+            statLevel.textContent = `Level ${currentLevel} of 10`;
+            statPlayerLvl.textContent = `LVL ${playerLevel}`;
+            statDamage.textContent = `${Math.round(totalDamageDealt)} HP`;
+        }
+
+
+        // MAIN GAME LOOP
+        function gameLoop(now) {
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+            gameTime++;
+
+            ctx.save();
+            if (cameraShake > 0) {
+                ctx.translate((Math.random() * 2 - 1) * cameraShake, (Math.random() * 2 - 1) * cameraShake);
+                cameraShake *= 0.88;
+            }
+
+            ctx.fillStyle = '#030205';
+            ctx.fillRect(0, 0, width, height);
+
+            // Ash Particles
+            ctx.fillStyle = '#ff3300';
+            backgroundAshes.forEach(ash => {
+                ash.y += ash.vy; ash.x += ash.vx;
+                if (ash.y < 0) { ash.y = height; ash.x = Math.random() * width; }
+                ctx.globalAlpha = ash.alpha;
+                ctx.fillRect(ash.x, ash.y, ash.size, ash.size);
+            });
+            ctx.globalAlpha = 1.0;
+
+            if (gameState === 'PLAYING' || gameState === 'TRANSITION') {
+                updateSkillCooldowns();
+
+                // Dragon Updates
+                playerDragon.update(pointer.x, pointer.y, enemyDragon);
+                enemyDragon.update(playerDragon.x, playerDragon.y, playerDragon);
+
+                // Collision: Head to Head
+                if (Math.hypot(playerDragon.x - enemyDragon.x, playerDragon.y - enemyDragon.y) < (playerDragon.baseSegmentRadius + enemyDragon.baseSegmentRadius)) {
+                    playerDragon.takeDamage(0.3);
+                    enemyDragon.takeDamage(0.2);
+                    cameraShake = 4;
+                }
+
+                // Projectiles Updates
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    const p = projectiles[i];
+                    p.update();
+
+                    if (p.isPlayer) {
+                        for (let s of enemyDragon.segments) {
+                            if (Math.hypot(p.x - s.x, p.y - s.y) < p.radius + s.radius) {
+                                enemyDragon.takeDamage(p.damage);
+                                addXp(2);
+                                for (let k = 0; k < 5; k++) particles.push(new Particle(p.x, p.y, (Math.random()-0.5)*7, (Math.random()-0.5)*7, p.color, 4, 18, true));
+                                projectiles.splice(i, 1);
+                                break;
+                            }
+                        }
+                    } else {
+                        for (let s of playerDragon.segments) {
+                            if (Math.hypot(p.x - s.x, p.y - s.y) < p.radius + s.radius) {
+                                playerDragon.takeDamage(p.damage);
+                                for (let k = 0; k < 5; k++) particles.push(new Particle(p.x, p.y, (Math.random()-0.5)*7, (Math.random()-0.5)*7, p.color, 4, 18, true));
+                                projectiles.splice(i, 1);
+                                break;
+                            }
+                        }
+                    }
+
+                    if (p.life <= 0 || p.x < -50 || p.x > width + 50 || p.y < -50 || p.y > height + 50) {
+                        if (projectiles[i] === p) projectiles.splice(i, 1);
+                    }
+                }
+
+                // Win/Loss
+                if (enemyDragon.hp <= 0) {
+                    playSound('bossDeath');
+                    addXp(currentLevel * 80 + 50);
+                    if (currentLevel < 10) startLevel(currentLevel + 1);
+                    else gameOver(true);
+                } else if (playerDragon.hp <= 0) {
+                    playSound('bossDeath');
+                    gameOver(false);
+                }
+
+                updateHUD();
+            }
+
+            // Draw Entities
+            if (playerDragon) playerDragon.draw(ctx);
+            if (enemyDragon) enemyDragon.draw(ctx);
+
+            projectiles.forEach(p => p.draw(ctx));
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const part = particles[i];
+                part.update(); part.draw(ctx);
+                if (part.life <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = damageTexts.length - 1; i >= 0; i--) {
+                const dtText = damageTexts[i];
+                dtText.update(); dtText.draw(ctx);
+                if (dtText.life <= 0) damageTexts.splice(i, 1);
+            }
+
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
+        }
+
+
+        // MOUSE & TOUCH CONTROLS
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            pointer.x = e.clientX; pointer.y = e.clientY;
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            pointer.isDown = true;
+            if (e.button === 2 || e.button === 0) pointer.isFiring = true;
+        });
+
+        window.addEventListener('mouseup', () => {
+            pointer.isDown = false; pointer.isFiring = false;
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                pointer.x = e.touches[0].clientX;
+                pointer.y = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                pointer.x = e.touches[0].clientX;
+                pointer.y = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        mobileFireBtn.addEventListener('touchstart', (e) => {
+            e.stopPropagation(); pointer.isFiring = true;
+        });
+        mobileFireBtn.addEventListener('touchend', (e) => {
+            e.stopPropagation(); pointer.isFiring = false;
+        });
+
+        startBtn.addEventListener('click', () => {
+            initAudio();
+            startModal.classList.add('hidden');
+            hud.classList.remove('opacity-0');
+            totalDamageDealt = 0; playerLevel = 1; playerXp = 0;
+            startLevel(1);
+        });
+
+        retryBtn.addEventListener('click', () => {
+            endModal.classList.add('hidden');
+            startLevel(currentLevel);
+        });
+
+        restartBtn.addEventListener('click', () => {
+            endModal.classList.add('hidden');
+            totalDamageDealt = 0; playerLevel = 1; playerXp = 0;
+            startLevel(1);
+        });
+
+        window.onload = () => {
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
